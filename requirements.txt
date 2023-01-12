@@ -1,2 +1,6 @@
 regex
 torch
+transformers
+pandas
+lemminflect
+opencc
