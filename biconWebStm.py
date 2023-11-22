@@ -22,6 +22,7 @@ if torch.cuda.is_available():
 model_file = model_files[2]
 if 'model' not in globals():
     model = transformers.BertModel.from_pretrained(model_file)
+    #model = torch.compile(model)
     tokenizer = transformers.BertTokenizer.from_pretrained(model_file)
     print(f"Finished loading model [{model_file}] ...")
 else:
@@ -174,20 +175,23 @@ corpora = """
 [0] TWP
 [1] Patten
 [2] UNPC
-[3] TWL
-[4] NTURegs
-[5] FTV
-[6] SAT
-[7] CIA
-[8] NEJM
-[9] VOA
-[10] NYT
-[11] BBC
-[12] Quixote
-[13] Wiki
+[3] FIN
+[4] QING
+[5] TWL
+[6] NTURegs
+[7] FTV
+[8] SAT
+[9] CIA
+[10] NEJM
+[11] VOA
+[12] NYT
+[13] BBC
+[14] Quixote
+[15] Wiki
 """.strip().split("\n")
 
 C = {k: c.split()[-1]+".xz" for k, c in enumerate(corpora)}
+C2 = {k: c.split()[-1] for k, c in enumerate(corpora)}
 
 
 def sz(s, c=0, max_matches=50, stats_only=False):
@@ -196,6 +200,7 @@ def sz(s, c=0, max_matches=50, stats_only=False):
     '''
     
     corpus = C[c]
+    corpus_code = C2[c]
     html_text = []
     Lexicon = dict()
     
@@ -250,15 +255,8 @@ def sz(s, c=0, max_matches=50, stats_only=False):
                 if stats_only:
                     pass
                 else:
-                    html_text.append(
-                        score + "\n<br>\n" +
-                        f'<p class="chinese">\n' +
-                        zh_marked + "\n<br>\n" +
-                        "</p>" +
-                        f'<p class="europe">\n' +
-                        en_marked + "\n<br>\n"
-                        "</p>"
-                    )
+                    lineOut = f'[{corpus_code}]\t{score}\t<p class="chinese">{zh_marked}</p>\t<p class="europe">{en_marked}</p>'
+                    html_text.append(lineOut)
                 L = buildLexicon(flatten(matches_list), a, z, e)
                 for k in L:
                     if k in Lexicon:
@@ -279,9 +277,9 @@ def sz(s, c=0, max_matches=50, stats_only=False):
         for k2, v2 in s:
             if k2:
                 summary += f"{v2}\t{k2}\n<br>\n"
-    html_text.append(summary)
+    #html_text.append(summary)
     
-    return html_text
+    return html_text, summary
 
 
 def se(s, c=0, max_matches=50, stats_only=False):
@@ -289,6 +287,7 @@ def se(s, c=0, max_matches=50, stats_only=False):
     s: English search phrase
     '''
     corpus = C[c]
+    corpus_code = C2[c]
     html_text = []
     Lexicon = dict()
 
@@ -343,15 +342,8 @@ def se(s, c=0, max_matches=50, stats_only=False):
                 if stats_only:
                     pass
                 else:
-                    html_text.append(
-                        f"{score}\n<br>\n" + '\t' +
-                        f'<p class="europe">\n' +
-                        f"{en_marked}\n<br>\n" +
-                        "</p>\n" + '\t' +
-                        f'<p class="chinese">\n' +
-                        f"{zh_marked}\n<br>\n" +
-                        "</p>\n"
-                    )
+                    lineOut = f'[{corpus_code}]\t{score}\t<p class="europe">{en_marked}</p>\t<p class="chinese">{zh_marked}</p>'
+                    html_text.append(lineOut)
                 L = buildLexicon(flatten(matches_list), a, e, z)
                 for k in L:
                     if k in Lexicon:
@@ -370,8 +362,8 @@ def se(s, c=0, max_matches=50, stats_only=False):
         for k2, v2 in s:
             if k2:
                 summary += f"{v2}\t{k2}\n<br>\n"
-    html_text.append(summary)
-    return html_text
+    #html_text.append(summary)
+    return html_text, summary
 
 
 regex_zh = re.compile(r"[一-龥]")
@@ -411,6 +403,7 @@ def regex_search(ss, c=0, max_matches=100, stats_only=False):
         zhSearch = True
     
     corpus = C[c]
+    corpus_code = C2[c]
     results = []
     cnt = 0
     with file_open(corpus) as fi:
@@ -447,7 +440,7 @@ def regex_search(ss, c=0, max_matches=100, stats_only=False):
                     
                     zhSub = ' '.join(zhList)
                     enSub = ' '.join(enList)
-                    lineOut = f'{score}<br/><p class="chinese">{zhSub}</p><br/><p class="europe">{enSub}</p>'
+                    lineOut = f'[{corpus_code}]\t{score}\t<p class="chinese">{zhSub}</p>\t<p class="europe">{enSub}</p>'
                     results.append(lineOut)
             else:
                 #a = align_word(en, zh)
@@ -468,7 +461,7 @@ def regex_search(ss, c=0, max_matches=100, stats_only=False):
                     zhSub = ' '.join(zhList)
                     enSub = ' '.join(enList)
                     
-                    lineOut = f'{score}<br/><p class="europe">{enSub}</p><br/><p class="chinese">{zhSub}</p>'
+                    lineOut = f'[{corpus_code}]\t{score}\t<p class="europe">{enSub}</p>\t<p class="chinese">{zhSub}</p>'
                     results.append(lineOut)
             
 
