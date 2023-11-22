@@ -4,3 +4,4 @@ transformers
 pandas
 lemminflect
 opencc
+streamlit
